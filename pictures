@@ -1,0 +1,121 @@
+import React, { Component } from 'react';
+import { Upload, Icon, Modal, Row, Col, Button } from 'antd';
+import styles from './pictures.css';
+import reqwest from 'reqwest';
+class Pictures extends Component {
+
+  state = {
+    previewVisible: false,
+    previewImage: '',
+    uploading: false,
+    fileList: [],
+  };
+
+  handleCancel = () => this.setState({ previewVisible: false })
+
+  handlePreview = (file) => {
+    this.setState({
+      previewImage: file.url || file.thumbUrl,
+      previewVisible: true,
+    });
+  }
+
+
+  handleChange = ({ file,fileList }) => this.setState({ file,fileList })
+
+  handleUpload = () => {
+    const { fileList } = this.state;
+    const { file } = this.state;
+    const formData = new FormData();
+    fileList.forEach((file) => {
+      formData.append('files[]', file);
+    });
+
+    this.setState({
+      uploading: true,
+    });
+
+    // You can use any AJAX library you like
+    reqwest({
+      url: 'http://localhost:8082/image/upload',
+      method: 'post',
+      processData: false,
+      data: formData,
+      success: () => {
+        this.setState({
+          fileList: [],
+          uploading: false,
+        });
+        message.success('upload successfully.');
+      },
+      error: () => {
+        this.setState({
+          uploading: false,
+        });
+        message.error('upload failed.');
+      },
+    });
+  }
+
+
+
+
+  render() {
+    const { previewVisible, previewImage, fileList } = this.state;
+    const props = {
+      onRemove: (file) => {
+        this.setState((state) => {
+          const index = state.fileList.indexOf(file);
+          const newFileList = state.fileList.slice();
+          newFileList.splice(index, 1);
+          return {
+            fileList: newFileList,
+          };
+        });
+      },
+      beforeUpload: (file) => {
+        this.setState(state => ({
+          fileList: [...state.fileList, file],
+        }));
+        return false;
+      },
+      fileList: this.state.fileList,
+      listType: "picture-card",
+      // name: 'filestest',
+      multiple: true,
+
+    };
+    const addButton = (
+      <Button>
+        <Icon type="upload" /> 选择文件
+          </Button>
+    );
+    const uploadButton = (
+      <Button onClick={this.handleUpload}>
+        <Icon type="upload" /> 提交
+          </Button>
+    );
+    return (<div className="clearfix">
+      <Row>
+        <Col>
+          <Upload
+            {...props}
+            onPreview={this.handlePreview}
+            // onChange={this.handleChange}
+          >
+            {addButton}
+          </Upload>
+        </Col>
+        <Col>
+
+        </Col>
+      </Row>
+      {fileList.length != 0 ? uploadButton : null}
+      <Modal visible={previewVisible} footer={null} onCancel={this.handleCancel}>
+        <img alt="example" style={{ width: '100%' }} src={previewImage} />
+      </Modal>
+    </div>
+    );
+  }
+}
+export default Pictures;
